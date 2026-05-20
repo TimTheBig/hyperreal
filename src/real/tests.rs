@@ -1512,4 +1512,64 @@ mod tests {
             (actual.to_f64_approx().unwrap() - expected.to_f64_approx().unwrap()).abs() < 1e-12
         );
     }
+
+    #[test]
+    fn abs_zero_is_zero() {
+        assert_eq!(Real::zero().abs(), Real::zero());
+    }
+
+    #[test]
+    fn abs_positive_rational_is_identity() {
+        let positive = Real::new(Rational::fraction(7, 2).unwrap());
+        assert_eq!(positive.clone().abs(), positive);
+    }
+
+    #[test]
+    fn abs_negative_rational_reflects_sign() {
+        let negative = Real::new(Rational::fraction(-7, 2).unwrap());
+        let positive = Real::new(Rational::fraction(7, 2).unwrap());
+        assert_eq!(negative.abs(), positive);
+    }
+
+    #[test]
+    fn abs_negative_integer_matches_positive_integer() {
+        let negative = Real::from(-42_i32);
+        let positive = Real::from(42_i32);
+        assert_eq!(negative.abs(), positive);
+    }
+
+    #[test]
+    fn abs_is_idempotent() {
+        let value = Real::from(-13_i32);
+        let once = value.clone().abs();
+        let twice = value.abs().abs();
+        assert_eq!(once, twice);
+    }
+
+    #[test]
+    fn abs_matches_neg_when_value_is_negative() {
+        let negative = Real::new(Rational::fraction(-11, 4).unwrap());
+        assert_eq!(negative.clone().abs(), -negative);
+    }
+
+    #[test]
+    fn abs_of_symbolic_pi_scale() {
+        let negative_pi = Real::pi() * Real::from(-3_i32);
+        let positive_pi = Real::pi() * Real::from(3_i32);
+        assert_eq!(negative_pi.abs(), positive_pi);
+    }
+
+    #[test]
+    fn abs_result_has_non_negative_best_sign() {
+        let values = [
+            Real::from(-5_i32),
+            Real::new(Rational::fraction(-1, 3).unwrap()),
+            Real::pi() * Real::from(-2_i32),
+            Real::e() * Real::new(Rational::fraction(-9, 5).unwrap()),
+        ];
+        for value in values {
+            let sign = value.abs().best_sign();
+            assert_ne!(sign, num::bigint::Sign::Minus);
+        }
+    }
 }

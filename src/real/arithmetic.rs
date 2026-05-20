@@ -2308,6 +2308,38 @@ impl Real {
         /* ... TODO add more cases which definitely aren't equal */
     }
 
+    /// The absolute value of this Real.
+    ///
+    /// Implemented by abs'ing the [`Rational`] scale via [`Rational::abs`].
+    /// Every internal symbolic class other than the opaque irrational variant
+    /// is constructed positive, so flipping the sign on the rational scale is
+    /// sufficient to reflect the value into the non-negative half-line.
+    ///
+    /// For an opaque irrational payload the sign of the underlying
+    /// [`Computable`] is unknown without refinement, so callers that need a
+    /// certified absolute value of an opaque irrational should certify the
+    /// sign with [`Real::best_sign`] (or a precision-driven sign refinement)
+    /// and negate explicitly when needed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hyperreal::{Rational, Real};
+    /// let negative = Real::new(Rational::fraction(-7, 2).unwrap());
+    /// let positive = Real::new(Rational::fraction(7, 2).unwrap());
+    /// assert_eq!(negative.abs(), positive);
+    /// assert_eq!(Real::zero().abs(), Real::zero());
+    /// ```
+    pub fn abs(self) -> Self {
+        Self {
+            rational: self.rational.abs(),
+            class: self.class,
+            computable: self.computable,
+            signal: self.signal,
+            primitive_approx_cache: Cell::new(PrimitiveApproxCache::Empty),
+        }
+    }
+
     /// Our best attempt to discern the [`Sign`] of this Real.
     /// This will be accurate for trivial Rationals and many but not all other cases.
     pub fn best_sign(&self) -> Sign {

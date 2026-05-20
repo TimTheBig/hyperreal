@@ -1084,6 +1084,28 @@ impl Rational {
         }
     }
 
+    /// The absolute value of this Rational.
+    ///
+    /// Zero stays zero (the [`Sign::NoSign`] invariant on zero rationals is
+    /// preserved); any negative value is reflected to its positive counterpart.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hyperreal::Rational;
+    /// let negative = Rational::fraction(-3, 4).unwrap();
+    /// let positive = Rational::fraction(3, 4).unwrap();
+    /// assert_eq!(negative.abs(), positive);
+    /// assert_eq!(Rational::zero().abs(), Rational::zero());
+    /// ```
+    pub fn abs(mut self) -> Self {
+        if self.sign == Sign::Minus {
+            self.sign = Sign::Plus;
+        }
+
+        self
+    }
+
     pub(crate) fn denominator(&self) -> &BigUint {
         &self.denominator
     }
