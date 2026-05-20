@@ -2299,12 +2299,14 @@ impl Real {
     /// Are two Reals definitely unequal?
     pub fn definitely_not_equal(&self, other: &Self) -> bool {
         if self.rational.sign() == Sign::NoSign {
-            return other.class.is_non_zero() && other.rational.sign() != Sign::NoSign;
+            other.class.is_non_zero() && other.rational.sign() != Sign::NoSign
+        } else if other.rational.sign() == Sign::NoSign {
+            self.class.is_non_zero() && self.rational.sign() != Sign::NoSign
+        } else if self.is_integer() ^ other.is_integer() {
+            true
+        } else {
+            false
         }
-        if other.rational.sign() == Sign::NoSign {
-            return self.class.is_non_zero() && self.rational.sign() != Sign::NoSign;
-        }
-        false
         /* ... TODO add more cases which definitely aren't equal */
     }
 
