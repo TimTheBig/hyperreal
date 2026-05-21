@@ -313,9 +313,9 @@ Borrowed versus owned operation overhead for rational and real operands.
 | `borrowed_op_overhead/real_unscaled_add_owned` | not run | not run | Adds owned unscaled transcendental `Real` values. |
 | `borrowed_op_overhead/real_add_refs` | not run | not run | Adds borrowed scaled transcendental `Real` values. |
 | `borrowed_op_overhead/real_add_owned` | not run | not run | Adds owned scaled transcendental `Real` values. |
-| `borrowed_op_overhead/real_dot2_refs_dense_symbolic` | not run | not run | Computes a borrowed two-lane symbolic dot product with no rational shortcut terms. |
-| `borrowed_op_overhead/real_active_dot2_refs_dense_symbolic` | not run | not run | Computes a borrowed two-lane symbolic dot product after the caller has already classified every lane active. |
-| `borrowed_op_overhead/real_dot2_refs_mixed_structural` | not run | not run | Computes a borrowed two-lane symbolic dot product with an exact zero lane and a rational scale lane. |
+| `borrowed_op_overhead/real_dot2_refs_dense_symbolic` | 2.922 us | 2.745 us - 3.148 us | Computes a borrowed two-lane symbolic dot product with no rational shortcut terms. |
+| `borrowed_op_overhead/real_active_dot2_refs_dense_symbolic` | 3.351 us | 2.914 us - 3.841 us | Computes a borrowed two-lane symbolic dot product after the caller has already classified every lane active. |
+| `borrowed_op_overhead/real_dot2_refs_mixed_structural` | 215.21 ns | 198.45 ns - 239.82 ns | Computes a borrowed two-lane symbolic dot product with an exact zero lane and a rational scale lane. |
 | `borrowed_op_overhead/real_dot3_refs_dense_symbolic` | not run | not run | Computes a borrowed three-lane symbolic dot product with no rational shortcut terms. |
 | `borrowed_op_overhead/real_active_dot3_refs_dense_symbolic` | not run | not run | Computes a borrowed three-lane symbolic dot product after the caller has already classified every lane active. |
 | `borrowed_op_overhead/real_dot3_refs_mixed_structural` | not run | not run | Computes a borrowed three-lane symbolic dot product with exact zero and rational scale terms. |
@@ -346,15 +346,24 @@ Construction-time shortcuts for exact rational multiples of pi and inverse compo
 | `exact_transcendental_special_forms/asin_sin_6pi_7` | not run | not run | Recognizes the principal branch of asin(sin(6pi/7)). |
 | `exact_transcendental_special_forms/acos_cos_9pi_7` | not run | not run | Recognizes the principal branch of acos(cos(9pi/7)). |
 | `exact_transcendental_special_forms/atan_tan_6pi_7` | not run | not run | Recognizes the principal branch of atan(tan(6pi/7)). |
-| `exact_transcendental_special_forms/asinh_large` | not run | not run | Builds a large inverse hyperbolic sine without exact intermediate Reals. |
-| `exact_transcendental_special_forms/atanh_sqrt_half` | not run | not run | Builds atanh(sqrt(2)/2) after exact structural domain checks. |
-| `exact_transcendental_special_forms/atanh_sqrt_two_error` | not run | not run | Rejects atanh(sqrt(2)) through exact structural domain checks. |
+| `exact_transcendental_special_forms/asinh_large` | 361.76 ns | 360.65 ns - 362.87 ns | Builds a large inverse hyperbolic sine without exact intermediate Reals. |
+| `exact_transcendental_special_forms/atanh_sqrt_half` | 636.03 ns | 633.97 ns - 638.10 ns | Builds atanh(sqrt(2)/2) after exact structural domain checks. |
+| `exact_transcendental_special_forms/atanh_sqrt_two_error` | 453.00 ns | 445.31 ns - 460.68 ns | Rejects atanh(sqrt(2)) through exact structural domain checks. |
+| `exact_transcendental_special_forms/sinh_ln_two` | 1.562 us | 1.519 us - 1.604 us | Folds sinh(ln(2)) to the exact rational 3/4 via the integer-log-collapse shortcut. |
+| `exact_transcendental_special_forms/cosh_ln_two` | 1.329 us | 1.312 us - 1.346 us | Folds cosh(ln(2)) to the exact rational 5/4 via the integer-log-collapse shortcut. |
+| `exact_transcendental_special_forms/tanh_ln_two` | 1.470 us | 1.436 us - 1.505 us | Folds tanh(ln(2)) to the exact rational 3/5 via the integer-log-collapse shortcut. |
+| `exact_transcendental_special_forms/sinh_rational_one` | 2.103 us | 2.091 us - 2.115 us | Builds sinh(1) through the generic (exp(x) - exp(-x))/2 identity path. |
+| `exact_transcendental_special_forms/cosh_rational_one` | 1.761 us | 1.745 us - 1.777 us | Builds cosh(1) through the generic (exp(x) + exp(-x))/2 identity path. |
+| `exact_transcendental_special_forms/tanh_rational_one` | 5.608 us | 5.595 us - 5.621 us | Builds tanh(1) through the generic (exp(x) - exp(-x))/(exp(x) + exp(-x)) identity path. |
 | `exact_transcendental_special_forms/atan2_origin` | 528.39 ns | 219.56 ns - 837.23 ns | Hits the origin (0, 0) short-circuit returning exact zero. |
 | `exact_transcendental_special_forms/atan2_axis_positive_y` | 289.65 ns | 285.15 ns - 294.15 ns | Hits the positive-y axis short-circuit returning exact pi/2. |
 | `exact_transcendental_special_forms/atan2_axis_negative_x` | 261.49 ns | 260.46 ns - 262.51 ns | Hits the negative-x axis short-circuit returning exact pi. |
 | `exact_transcendental_special_forms/atan2_quadrant_one_unit_diagonal` | 756.33 ns | 746.31 ns - 766.34 ns | Quadrant I unit diagonal reduces to atan(1) = pi/4 exact special form. |
 | `exact_transcendental_special_forms/atan2_quadrant_two_pi_correction` | 1.890 us | 1.872 us - 1.908 us | Quadrant II (1, -2) exercises atan(small ratio) + pi correction. |
 | `exact_transcendental_special_forms/atan2_quadrant_three_negative_pi` | 1.156 us | 1.140 us - 1.172 us | Quadrant III (-1, -2) exercises atan(small ratio) - pi correction. |
+| `exact_transcendental_special_forms/log2_power_of_two` | not run | not run | Folds log2(1024) to the exact rational 10 via the integer-log-detection shortcut. |
+| `exact_transcendental_special_forms/log2_rational_three` | not run | not run | Builds log2(3) as a lightweight Log2 symbolic certificate. |
+| `exact_transcendental_special_forms/log2_ln_quotient_fold` | not run | not run | Folds ln(5) / ln(2) into a Log2 certificate via the divide-recognize shortcut. |
 
 ### `symbolic_reductions`
 
