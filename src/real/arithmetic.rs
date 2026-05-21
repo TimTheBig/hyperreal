@@ -3402,9 +3402,22 @@ impl Real {
 
     /// The base 2 logarithm of this Real or Problem::NotANumber if this Real is not positive.
     pub fn log2(self) -> Result<Real, Problem> {
-        if self.best_sign() != Sign::Plus {
-            crate::trace_dispatch!("real", "log2", "domain-not-positive");
-            return Err(Problem::NotANumber);
+        // Domain check uses structural sign first. Refinement-forced sign
+        // (`best_sign`) is reserved for the case where cheap inspection cannot
+        // decide; rejecting structurally known nonpositive inputs avoids
+        // ~2µs of computable work on the typical hot path.
+        match self.structural_facts().sign {
+            Some(RealSign::Positive) => {}
+            Some(RealSign::Zero | RealSign::Negative) => {
+                crate::trace_dispatch!("real", "log2", "domain-not-positive");
+                return Err(Problem::NotANumber);
+            }
+            None => {
+                if self.best_sign() != Sign::Plus {
+                    crate::trace_dispatch!("real", "log2", "domain-not-positive");
+                    return Err(Problem::NotANumber);
+                }
+            }
         }
         if let One = &self.class {
             return Self::log2_rational(self.rational);
@@ -4113,8 +4126,23 @@ impl Real {
     /// );
     /// ```
     pub fn atan2(self, x: Real) -> Real {
-        let y_sign = self.best_sign();
-        let x_sign = x.best_sign();
+        // Structural sign first. `best_sign` for Irrational class refines the
+        // computable graph until the sign is decided, which is dramatically
+        // more expensive than reading already-derivable structural facts. Only
+        // descend to the refinement path when structural inspection cannot
+        // decide for one of the inputs.
+        let y_sign = match self.structural_facts().sign {
+            Some(RealSign::Zero) => Sign::NoSign,
+            Some(RealSign::Positive) => Sign::Plus,
+            Some(RealSign::Negative) => Sign::Minus,
+            None => self.best_sign(),
+        };
+        let x_sign = match x.structural_facts().sign {
+            Some(RealSign::Zero) => Sign::NoSign,
+            Some(RealSign::Positive) => Sign::Plus,
+            Some(RealSign::Negative) => Sign::Minus,
+            None => x.best_sign(),
+        };
         match (y_sign, x_sign) {
             (Sign::NoSign, Sign::NoSign) | (Sign::NoSign, Sign::Plus) => {
                 crate::trace_dispatch!("real", "atan2", "axis-zero-y");
