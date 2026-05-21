@@ -2461,6 +2461,57 @@ impl Real {
         self
     }
 
+    /// Rounds to the nearest integer, with halfway cases rounded to the even
+    /// integer (banker's rounding, matching [`f64::round_ties_even`]).
+    ///
+    /// Implemented by delegating to [`Rational::round_ties_even`] on the
+    /// rational scale. This is exact when the [`Real`] is purely rational
+    /// ([`Real::is_rational`] returns true), in which case the result is again
+    /// a rational integer [`Real`].
+    ///
+    /// For a non-rational [`Real`] (any non-[`Class::One`] internal class such
+    /// as `pi`, `sqrt`, `ln`, …) the symbolic factor is preserved and only the
+    /// rational scale in front of it is rounded. The intended use is on reals
+    /// known to be rational; callers wanting an integer round of an irrational
+    /// value should refine via approximation instead.
+    ///
+    /// Banker's rounding is statistically unbiased on uniformly distributed
+    /// halves; prefer it over [`Real::ceil`] / [`Real::trunc`] when accumulating
+    /// many rounded values where round-half-up would systematically drift
+    /// upward. See [`Rational::round_ties_even`] for the underlying tie-break
+    /// and the unsigned-zero rule on magnitudes that collapse to zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hyperreal::{Rational, Real};
+    /// // 1/2 → 0 (0 is even)
+    /// let half = Real::new(Rational::fraction(1, 2).unwrap());
+    /// assert_eq!(half.round_ties_even(), Real::zero());
+    /// // 3/2 → 2 (2 is even, 1 is not)
+    /// let three_halves = Real::new(Rational::fraction(3, 2).unwrap());
+    /// assert_eq!(three_halves.round_ties_even(), Real::from(2_i32));
+    /// // 5/2 → 2 (2 is even)
+    /// let five_halves = Real::new(Rational::fraction(5, 2).unwrap());
+    /// assert_eq!(five_halves.round_ties_even(), Real::from(2_i32));
+    /// // -5/2 → -2
+    /// let neg = Real::new(Rational::fraction(-5, 2).unwrap());
+    /// assert_eq!(neg.round_ties_even(), Real::from(-2_i32));
+    /// // 22/7 ≈ 3.143 → 3 (non-tie)
+    /// let approx_pi = Real::new(Rational::fraction(22, 7).unwrap());
+    /// assert_eq!(approx_pi.round_ties_even(), Real::from(3_i32));
+    /// // Integers and zero are unchanged.
+    /// assert_eq!(Real::from(-3_i32).round_ties_even(), Real::from(-3_i32));
+    /// assert_eq!(Real::zero().round_ties_even(), Real::zero());
+    /// ```
+    pub fn round_ties_even(mut self) -> Self {
+        self.rational = self.rational.round_ties_even();
+
+        map_cache!(self.primitive_approx_cache, |f| f.round_ties_even());
+
+        self
+    }
+
     /// The integer part of `self`, truncated toward zero.
     ///
     /// Implemented by delegating to [`Rational::trunc`] on the rational scale.

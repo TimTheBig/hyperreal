@@ -2140,6 +2140,73 @@ mod tests {
     }
 
     #[test]
+    fn round_ties_even_breaks_positive_ties_to_even() {
+        // 0.5 → 0, 1.5 → 2, 2.5 → 2, 3.5 → 4
+        let half = Real::new(Rational::fraction(1, 2).unwrap());
+        assert_eq!(half.round_ties_even(), Real::zero());
+        let three_halves = Real::new(Rational::fraction(3, 2).unwrap());
+        assert_eq!(three_halves.round_ties_even(), Real::from(2_i32));
+        let five_halves = Real::new(Rational::fraction(5, 2).unwrap());
+        assert_eq!(five_halves.round_ties_even(), Real::from(2_i32));
+        let seven_halves = Real::new(Rational::fraction(7, 2).unwrap());
+        assert_eq!(seven_halves.round_ties_even(), Real::from(4_i32));
+    }
+
+    #[test]
+    fn round_ties_even_breaks_negative_ties_to_even() {
+        // -1.5 → -2, -2.5 → -2, -3.5 → -4
+        let m3h = Real::new(Rational::fraction(-3, 2).unwrap());
+        assert_eq!(m3h.round_ties_even(), Real::from(-2_i32));
+        let m5h = Real::new(Rational::fraction(-5, 2).unwrap());
+        assert_eq!(m5h.round_ties_even(), Real::from(-2_i32));
+        let m7h = Real::new(Rational::fraction(-7, 2).unwrap());
+        assert_eq!(m7h.round_ties_even(), Real::from(-4_i32));
+    }
+
+    #[test]
+    fn round_ties_even_negative_half_collapses_to_zero() {
+        // -0.5 → 0 (even, unsigned-zero invariant).
+        let small = Real::new(Rational::fraction(-1, 2).unwrap());
+        assert_eq!(small.round_ties_even(), Real::zero());
+    }
+
+    #[test]
+    fn round_ties_even_rounds_non_tie_to_nearest() {
+        // 22/7 ≈ 3.143 → 3
+        let approx_pi = Real::new(Rational::fraction(22, 7).unwrap());
+        assert_eq!(approx_pi.round_ties_even(), Real::from(3_i32));
+        // -22/7 → -3
+        let neg = Real::new(Rational::fraction(-22, 7).unwrap());
+        assert_eq!(neg.round_ties_even(), Real::from(-3_i32));
+        // 2/3 → 1, 1/3 → 0
+        let two_thirds = Real::new(Rational::fraction(2, 3).unwrap());
+        assert_eq!(two_thirds.round_ties_even(), Real::from(1_i32));
+        let one_third = Real::new(Rational::fraction(1, 3).unwrap());
+        assert_eq!(one_third.round_ties_even(), Real::zero());
+    }
+
+    #[test]
+    fn round_ties_even_preserves_integers_and_zero() {
+        assert_eq!(Real::from(5_i32).round_ties_even(), Real::from(5_i32));
+        assert_eq!(Real::from(-3_i32).round_ties_even(), Real::from(-3_i32));
+        assert_eq!(Real::zero().round_ties_even(), Real::zero());
+    }
+
+    #[test]
+    fn round_ties_even_matches_f64_on_sampled_halves() {
+        for n in -8_i64..=8 {
+            let rat = Real::new(Rational::fraction(2 * n + 1, 2).unwrap());
+            let oracle = ((2 * n + 1) as f64 / 2.0).round_ties_even() as i32;
+            assert_eq!(
+                rat.round_ties_even(),
+                Real::from(oracle),
+                "tie at {}/2 disagreed with f64::round_ties_even",
+                2 * n + 1,
+            );
+        }
+    }
+
+    #[test]
     fn rem_integers() {
         let seven = Real::from(7_i32);
         let three = Real::from(3_i32);

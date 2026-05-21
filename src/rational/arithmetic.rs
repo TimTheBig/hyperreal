@@ -1151,6 +1151,87 @@ impl Rational {
         }
     }
 
+    /// Rounds to the nearest integer, with halfway cases rounded to the even
+    /// integer (banker's rounding, matching [`f64::round_ties_even`]).
+    ///
+    /// Integers and zero are returned unchanged via a fast path. For a
+    /// non-integer the magnitude is rounded by comparing `2 * |numerator mod
+    /// denominator|` against the denominator: smaller rounds toward zero,
+    /// larger rounds away from zero, and an exact tie rounds the magnitude to
+    /// the nearer even integer. The sign of `self` is then reattached, except
+    /// when the rounded magnitude is zero — in that case the result is
+    /// [`Rational::zero`] so the unsigned-zero invariant (no `Minus`-signed
+    /// zero) is upheld even for inputs like `-1/2`.
+    ///
+    /// Banker's rounding is statistically unbiased on uniformly distributed
+    /// halves; prefer it over [`Rational::ceil`] / [`Rational::trunc`] when
+    /// accumulating many rounded values where round-half-up would systematically
+    /// drift upward.
+    ///
+    /// # Examples
+    ///
+    /// Halfway cases round to the nearer even integer:
+    /// ```
+    /// use hyperreal::Rational;
+    /// // 1/2 → 0 (0 is even)
+    /// assert_eq!(Rational::fraction(1, 2).unwrap().round_ties_even(), Rational::zero());
+    /// // 3/2 → 2 (2 is even, 1 is not)
+    /// assert_eq!(Rational::fraction(3, 2).unwrap().round_ties_even(), Rational::new(2));
+    /// // 5/2 → 2 (2 is even)
+    /// assert_eq!(Rational::fraction(5, 2).unwrap().round_ties_even(), Rational::new(2));
+    /// // -5/2 → -2 (sign reattached after even-magnitude tie-break)
+    /// assert_eq!(Rational::fraction(-5, 2).unwrap().round_ties_even(), Rational::new(-2));
+    /// // -1/2 → 0 (magnitude collapses to unsigned zero)
+    /// assert_eq!(Rational::fraction(-1, 2).unwrap().round_ties_even(), Rational::zero());
+    /// ```
+    ///
+    /// Non-tie cases round to the nearest integer:
+    /// ```
+    /// use hyperreal::Rational;
+    /// // 22/7 ≈ 3.143 → 3
+    /// assert_eq!(Rational::fraction(22, 7).unwrap().round_ties_even(), Rational::new(3));
+    /// // 2/3 ≈ 0.667 → 1
+    /// assert_eq!(Rational::fraction(2, 3).unwrap().round_ties_even(), Rational::new(1));
+    /// // -22/7 → -3
+    /// assert_eq!(Rational::fraction(-22, 7).unwrap().round_ties_even(), Rational::new(-3));
+    /// // Integers and zero are unchanged.
+    /// assert_eq!(Rational::new(-3).round_ties_even(), Rational::new(-3));
+    /// assert_eq!(Rational::zero().round_ties_even(), Rational::zero());
+    /// ```
+    pub fn round_ties_even(self) -> Self {
+        use num::Integer;
+
+        if self.is_integer() {
+            return self;
+        }
+
+        let quotient = &self.numerator / &self.denominator;
+        let remainder = &self.numerator % &self.denominator;
+        let doubled_remainder = &remainder + &remainder;
+
+        let magnitude = match doubled_remainder.cmp(&self.denominator) {
+            Ordering::Less => quotient,
+            Ordering::Greater => quotient + 1u32,
+            Ordering::Equal => {
+                if quotient.is_even() {
+                    quotient
+                } else {
+                    quotient + 1u32
+                }
+            }
+        };
+
+        if magnitude.is_zero() {
+            return Self::zero();
+        }
+
+        Self {
+            sign: self.sign,
+            numerator: magnitude,
+            denominator: ONE.deref().clone(),
+        }
+    }
+
     /// The absolute value of this Rational.
     ///
     /// Zero stays zero (the [`Sign::NoSign`] invariant on zero rationals is
@@ -2701,6 +2782,113 @@ mod tests {
         let result = Rational::fraction(-1, 2).unwrap().trunc();
         assert_eq!(result, Rational::zero());
         assert_eq!(result.sign(), Sign::NoSign);
+    }
+
+    #[test]
+    fn round_ties_even_preserves_integers_and_zero() {
+        assert_eq!(Rational::new(5).round_ties_even(), Rational::new(5));
+        assert_eq!(Rational::new(-3).round_ties_even(), Rational::new(-3));
+        assert_eq!(Rational::zero().round_ties_even(), Rational::zero());
+    }
+
+    #[test]
+    fn round_ties_even_breaks_positive_ties_to_even() {
+        // 0.5 → 0, 1.5 → 2, 2.5 → 2, 3.5 → 4
+        assert_eq!(
+            Rational::fraction(1, 2).unwrap().round_ties_even(),
+            Rational::zero(),
+        );
+        assert_eq!(
+            Rational::fraction(3, 2).unwrap().round_ties_even(),
+            Rational::new(2),
+        );
+        assert_eq!(
+            Rational::fraction(5, 2).unwrap().round_ties_even(),
+            Rational::new(2),
+        );
+        assert_eq!(
+            Rational::fraction(7, 2).unwrap().round_ties_even(),
+            Rational::new(4),
+        );
+    }
+
+    #[test]
+    fn round_ties_even_breaks_negative_ties_to_even() {
+        // -1.5 → -2, -2.5 → -2, -3.5 → -4
+        assert_eq!(
+            Rational::fraction(-3, 2).unwrap().round_ties_even(),
+            Rational::new(-2),
+        );
+        assert_eq!(
+            Rational::fraction(-5, 2).unwrap().round_ties_even(),
+            Rational::new(-2),
+        );
+        assert_eq!(
+            Rational::fraction(-7, 2).unwrap().round_ties_even(),
+            Rational::new(-4),
+        );
+    }
+
+    #[test]
+    fn round_ties_even_of_negative_half_collapses_to_unsigned_zero() {
+        // -0.5 → 0 (even). Result must be canonical unsigned zero.
+        let result = Rational::fraction(-1, 2).unwrap().round_ties_even();
+        assert_eq!(result, Rational::zero());
+        assert_eq!(result.sign(), Sign::NoSign);
+    }
+
+    #[test]
+    fn round_ties_even_rounds_non_tie_to_nearest() {
+        // 22/7 ≈ 3.143 → 3
+        assert_eq!(
+            Rational::fraction(22, 7).unwrap().round_ties_even(),
+            Rational::new(3),
+        );
+        // 2/3 ≈ 0.667 → 1
+        assert_eq!(
+            Rational::fraction(2, 3).unwrap().round_ties_even(),
+            Rational::new(1),
+        );
+        // 1/3 ≈ 0.333 → 0
+        assert_eq!(
+            Rational::fraction(1, 3).unwrap().round_ties_even(),
+            Rational::zero(),
+        );
+        // 1/4 → 0, 3/4 → 1
+        assert_eq!(
+            Rational::fraction(1, 4).unwrap().round_ties_even(),
+            Rational::zero(),
+        );
+        assert_eq!(
+            Rational::fraction(3, 4).unwrap().round_ties_even(),
+            Rational::new(1),
+        );
+        // -22/7 ≈ -3.143 → -3
+        assert_eq!(
+            Rational::fraction(-22, 7).unwrap().round_ties_even(),
+            Rational::new(-3),
+        );
+        // -2/3 → -1
+        assert_eq!(
+            Rational::fraction(-2, 3).unwrap().round_ties_even(),
+            Rational::new(-1),
+        );
+    }
+
+    #[test]
+    fn round_ties_even_matches_f64_on_sampled_halves() {
+        // Cross-check against f64::round_ties_even on exact half-integers
+        // (which f64 can represent exactly, so no rounding error in the oracle).
+        for n in -8_i64..=8 {
+            let rat = Rational::fraction(2 * n + 1, 2).unwrap();
+            let oracle = ((2 * n + 1) as f64 / 2.0).round_ties_even() as i64;
+            assert_eq!(
+                rat.round_ties_even(),
+                Rational::new(oracle),
+                "tie at {}/2 disagreed with f64::round_ties_even",
+                2 * n + 1,
+            );
+        }
     }
 
     #[test]
