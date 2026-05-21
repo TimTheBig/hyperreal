@@ -400,6 +400,30 @@ const SCALAR_MICRO_GROUPS: &[BenchGroupDoc] = &[
                 name: "atanh_sqrt_two_error",
                 description: "Rejects atanh(sqrt(2)) through exact structural domain checks.",
             },
+            BenchDoc {
+                name: "atan2_origin",
+                description: "Hits the origin (0, 0) short-circuit returning exact zero.",
+            },
+            BenchDoc {
+                name: "atan2_axis_positive_y",
+                description: "Hits the positive-y axis short-circuit returning exact pi/2.",
+            },
+            BenchDoc {
+                name: "atan2_axis_negative_x",
+                description: "Hits the negative-x axis short-circuit returning exact pi.",
+            },
+            BenchDoc {
+                name: "atan2_quadrant_one_unit_diagonal",
+                description: "Quadrant I unit diagonal reduces to atan(1) = pi/4 exact special form.",
+            },
+            BenchDoc {
+                name: "atan2_quadrant_two_pi_correction",
+                description: "Quadrant II (1, -2) exercises atan(small ratio) + pi correction.",
+            },
+            BenchDoc {
+                name: "atan2_quadrant_three_negative_pi",
+                description: "Quadrant III (-1, -2) exercises atan(small ratio) - pi correction.",
+            },
         ],
     },
     BenchGroupDoc {
@@ -1014,6 +1038,54 @@ fn bench_exact_transcendental_special_forms(c: &mut Criterion) {
         b.iter_batched(
             || atanh_sqrt_two_error.clone(),
             |value| black_box(value.atanh().unwrap_err()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    let zero = Real::zero();
+    let positive_one = Real::one();
+    let negative_one = -Real::one();
+    let negative_two = Real::from(-2_i32);
+
+    group.bench_function("atan2_origin", |b| {
+        b.iter_batched(
+            || (zero.clone(), zero.clone()),
+            |(y, x)| black_box(y.atan2(x)),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("atan2_axis_positive_y", |b| {
+        b.iter_batched(
+            || (positive_one.clone(), zero.clone()),
+            |(y, x)| black_box(y.atan2(x)),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("atan2_axis_negative_x", |b| {
+        b.iter_batched(
+            || (zero.clone(), negative_one.clone()),
+            |(y, x)| black_box(y.atan2(x)),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("atan2_quadrant_one_unit_diagonal", |b| {
+        b.iter_batched(
+            || (positive_one.clone(), positive_one.clone()),
+            |(y, x)| black_box(y.atan2(x)),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("atan2_quadrant_two_pi_correction", |b| {
+        b.iter_batched(
+            || (positive_one.clone(), negative_two.clone()),
+            |(y, x)| black_box(y.atan2(x)),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("atan2_quadrant_three_negative_pi", |b| {
+        b.iter_batched(
+            || (negative_one.clone(), negative_two.clone()),
+            |(y, x)| black_box(y.atan2(x)),
             BatchSize::SmallInput,
         )
     });
