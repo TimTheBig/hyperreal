@@ -5030,10 +5030,18 @@ impl Real {
     /// Format this Real as a decimal rather than rational.
     /// Scientific notation will be used if the value is very large or small.
     pub fn decimal(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let folded = self.fold_ref();
-        match folded.iter_msd_stop(-20) {
-            Some(-19..60) => fmt::Display::fmt(&folded, f),
-            _ => fmt::LowerExp::fmt(&folded, f),
+        if self.definitely_zero() {
+            if f.alternate() {
+                write!(f, "0.0")
+            } else {
+                write!(f, "0")
+            }
+        } else {
+            let folded = self.fold_ref();
+            match folded.iter_msd_stop(-20) {
+                Some(-19..60) => fmt::Display::fmt(&folded, f),
+                _ => fmt::LowerExp::fmt(&folded, f),
+            }
         }
     }
 }
