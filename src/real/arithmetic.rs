@@ -2507,7 +2507,7 @@ impl Real {
     pub fn round_ties_even(mut self) -> Self {
         self.rational = self.rational.round_ties_even();
 
-        map_cache!(self.primitive_approx_cache, |f| f.round_ties_even());
+        self.primitive_approx_cache.take();
 
         self
     }
