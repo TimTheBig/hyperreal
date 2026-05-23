@@ -192,11 +192,7 @@ impl fmt::Display for Computable {
         }
         // Decimal point or early exit if we won't write any decimal places
         if dp == 0 {
-            return if f.alternate() {
-                f.write_str(".0")
-            } else {
-                Ok(())
-            };
+            return  Ok(());
         }
         if f.precision().is_none() && num.peek().is_none() {
             return Ok(());
