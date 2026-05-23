@@ -1809,7 +1809,10 @@ mod tests {
 
     #[test]
     fn active_dot2_refs_matches_dot2_refs_when_all_lanes_active() {
-        let left = [Real::pi(), Real::e() * Real::new(Rational::fraction(3, 5).unwrap())];
+        let left = [
+            Real::pi(),
+            Real::e() * Real::new(Rational::fraction(3, 5).unwrap()),
+        ];
         let right = [
             Real::e() * Real::new(Rational::fraction(2, 7).unwrap()),
             Real::pi(),
@@ -2025,8 +2028,7 @@ mod tests {
         let zero_minus = Computable::zero().atan2(Computable::one().negate());
         assert_eq!(zero_minus.approx(-30), Computable::pi().approx(-30));
         let plus_y = Computable::one().atan2(Computable::zero());
-        let half_pi = Computable::pi()
-            .multiply(Computable::one().add(Computable::one()).inverse());
+        let half_pi = Computable::pi().multiply(Computable::one().add(Computable::one()).inverse());
         assert_eq!(plus_y.approx(-30), half_pi.approx(-30));
     }
 
@@ -2082,8 +2084,14 @@ mod tests {
         // sign, so copysign should flip the overall Real sign exactly.
         let positive_pi = Real::pi();
         let negative_pi = -Real::pi();
-        assert_eq!(positive_pi.clone().copysign(&Real::from(-3_i32)), negative_pi);
-        assert_eq!(negative_pi.clone().copysign(&Real::from(2_i32)), positive_pi);
+        assert_eq!(
+            positive_pi.clone().copysign(&Real::from(-3_i32)),
+            negative_pi
+        );
+        assert_eq!(
+            negative_pi.clone().copysign(&Real::from(2_i32)),
+            positive_pi
+        );
     }
 
     #[test]
@@ -2346,7 +2354,10 @@ mod tests {
 
     #[test]
     fn radians_degrees_roundtrip_on_180() {
-        assert_eq!(Real::from(180_i32).to_radians().to_degrees(), Real::from(180_i32));
+        assert_eq!(
+            Real::from(180_i32).to_radians().to_degrees(),
+            Real::from(180_i32)
+        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
-use crate::{Problem, Real};
 use crate::structural::{RationalFacts, RationalStorageClass};
+use crate::{Problem, Real};
 use num::bigint::Sign::{self, *};
 use num::{BigInt, BigUint, ToPrimitive};
 use num::{One, Zero};

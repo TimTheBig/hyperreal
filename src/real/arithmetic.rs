@@ -1125,9 +1125,13 @@ macro_rules! map_cache {
     ($cache:expr, $map_fn:expr) => {
         $cache.update(|ac| match ac {
             #[cfg(feature = "cached-f32-approx")]
-            $crate::real::PrimitiveApproxCache::F32(f) => $crate::real::PrimitiveApproxCache::F32(f.map(|f| $map_fn(f))),
+            $crate::real::PrimitiveApproxCache::F32(f) => {
+                $crate::real::PrimitiveApproxCache::F32(f.map(|f| $map_fn(f)))
+            }
             #[cfg(feature = "cached-f64-approx")]
-            $crate::real::PrimitiveApproxCache::F64(f) => $crate::real::PrimitiveApproxCache::F64(f.map(|f| $map_fn(f))),
+            $crate::real::PrimitiveApproxCache::F64(f) => {
+                $crate::real::PrimitiveApproxCache::F64(f.map(|f| $map_fn(f)))
+            }
             _ => $crate::real::PrimitiveApproxCache::Empty,
         });
     };
@@ -1424,7 +1428,8 @@ impl Real {
                 Irrational => "scaled-computable",
                 Pi | PiPow(_) | PiInv | PiExp(_) | PiInvExp(_) | PiSqrt(_) | ConstProduct(_)
                 | ConstOffset(_) | ConstProductSqrt(_) | Sqrt(_) | Exp(_) | Ln(_) | LnAffine(_)
-                | LnProduct(_) | Log10(_) | Log2(_) | SinPi(_) | TanPi(_) => "symbolic-nonzero-scale",
+                | LnProduct(_) | Log10(_) | Log2(_) | SinPi(_) | TanPi(_) =>
+                    "symbolic-nonzero-scale",
             }
         );
 
@@ -2557,7 +2562,7 @@ impl Real {
             signal: None,
             primitive_approx_cache: Cell::new(match self.primitive_approx_cache.get() {
                 #[cfg(feature = "cached-f32-approx")]
-                F32(f) => F32(f.map(|f| f.trunc())), 
+                F32(f) => F32(f.map(|f| f.trunc())),
                 #[cfg(feature = "cached-f64-approx")]
                 F64(f) => F64(f.map(|f| f.trunc())),
                 _ => Empty,
@@ -4234,9 +4239,7 @@ impl Real {
             let squared = base.clone().powi(int * BigInt::from(2_u8))?;
             let one = Rational::one();
             crate::trace_dispatch!("real", "tanh", "integer-log-collapse");
-            return Ok(Self::new(
-                (squared.clone() - one.clone()) / (squared + one),
-            ));
+            return Ok(Self::new((squared.clone() - one.clone()) / (squared + one)));
         }
         crate::trace_dispatch!("real", "tanh", "generic-exp-identity");
         let positive = self.clone().exp()?;
