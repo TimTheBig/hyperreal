@@ -5032,9 +5032,9 @@ use core::fmt;
 impl Real {
     /// Format this Real as a decimal rather than rational.
     /// Scientific notation will be used if the value is very large or small.
-    pub fn decimal(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn decimal(&self, f: &mut fmt::Formatter<'_>, force_decimal_point: bool) -> fmt::Result {
         if self.definitely_zero() {
-            if f.alternate() {
+            if force_decimal_point {
                 write!(f, "0.0")
             } else {
                 write!(f, "0")
@@ -5042,7 +5042,12 @@ impl Real {
         } else {
             let folded = self.fold_ref();
             match folded.iter_msd_stop(-20) {
-                Some(-19..60) => fmt::Display::fmt(&folded, f),
+                Some(-19..60) => {
+                    fmt::Display::fmt(&folded, f)?;
+                    if force_decimal_point && self.is_integer() {
+                        write!(f, ".0")
+                    } else { Ok(()) }
+                },
                 _ => fmt::LowerExp::fmt(&folded, f),
             }
         }
@@ -5066,7 +5071,7 @@ impl fmt::LowerExp for Real {
 impl fmt::Display for Real {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
-            self.decimal(f)
+            self.decimal(f, false)
         } else {
             self.rational.fmt(f)?;
             match &self.class {
